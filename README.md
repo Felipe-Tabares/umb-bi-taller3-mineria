@@ -23,7 +23,9 @@ python taller3_mineria.py
 
 En Google Colab no hay que instalar nada. Se sube el archivo y se corre con `!python taller3_mineria.py`.
 
-El programa imprime los resultados en pantalla y guarda los dos gráficos en la carpeta `figuras`. En `salida.txt` está lo que imprime cuando se corre, que son las mismas cifras del documento entregado y del archivo de Excel.
+Al correrlo imprime los resultados en pantalla, guarda los dos gráficos en la carpeta `figuras` y arma `reporte_taller3.html`, un reporte con todas las tablas y los dos gráficos que se abre solo en el navegador. Si no se quiere que lo abra, se corre con `python taller3_mineria.py --sin-abrir`. En Colab el reporte queda en los archivos de la sesión y de ahí se descarga.
+
+En `salida.txt` está lo que imprime cuando se corre, que son las mismas cifras del documento entregado y del archivo de Excel. El reporte de este repositorio ya viene generado, para verlo basta con descargarlo y abrirlo.
 
 ## Gráficos
 

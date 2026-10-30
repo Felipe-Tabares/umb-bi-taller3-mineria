@@ -7,10 +7,18 @@ Sigue el orden de la guía:
   Actividad 3. Clasificación por rangos de valor y agrupamiento con K-means
   Fase 3. Gráfico de barras y gráfico de dispersión
 
+Los resultados salen en la consola y también en un reporte, reporte_taller3.html,
+que trae las tablas y los dos gráficos y se abre solo en el navegador. Los
+gráficos quedan además como imagen en la carpeta figuras.
+
 Usa pandas, matplotlib y scikit-learn, que ya vienen instalados en Google Colab.
 
     python3 taller3_mineria.py
 """
+import base64
+import html
+import sys
+import webbrowser
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -37,6 +45,7 @@ DATOS = [
 COLUMNAS = ["id", "edad", "ciudad", "producto", "valor_texto", "compras_mes"]
 
 SALIDA = Path("figuras")
+REPORTE = Path("reporte_taller3.html")
 TINTA, TINTA_SUAVE, REJILLA, AZUL = "#1a1a19", "#555550", "#e4e3df", "#2a78d6"
 # Un color y una forma por grupo, porque el color solo no basta para todos.
 GRUPOS = {
@@ -44,6 +53,8 @@ GRUPOS = {
     2: ("#eb6834", "s", "Grupo 2: jóvenes, valor medio"),
     3: ("#1baf7a", "^", "Grupo 3: mayores, valor alto"),
 }
+# Cada resultado se imprime y además se guarda aquí como HTML para el reporte.
+PARTES = []
 
 
 def pesos(x):
@@ -53,6 +64,32 @@ def pesos(x):
 
 def titulo(texto):
     print("\n" + "=" * 70 + "\n" + texto + "\n" + "=" * 70)
+    PARTES.append(f"<h2>{html.escape(texto)}</h2>")
+
+
+def subtitulo(texto):
+    print("\n" + texto)
+    PARTES.append(f"<h3>{html.escape(texto)}</h3>")
+
+
+def mostrar(*cosas):
+    texto = " ".join(str(c) for c in cosas)
+    print(texto)
+    PARTES.append(f"<p>{html.escape(texto)}</p>")
+
+
+def mostrar_tabla(tabla):
+    print(tabla.to_string())
+    if isinstance(tabla, pd.Series):
+        tabla = tabla.to_frame()
+    PARTES.append(tabla.to_html(border=0))
+
+
+def mostrar_imagen(ruta, pie):
+    # La imagen va metida dentro del HTML, así el reporte es un solo archivo.
+    datos = base64.b64encode(ruta.read_bytes()).decode()
+    PARTES.append(f'<figure><img src="data:image/png;base64,{datos}" alt="{pie}">'
+                  f"<figcaption>{pie}</figcaption></figure>")
 
 
 # ---------------------------------------------------------------------------
@@ -62,21 +99,21 @@ def preparar():
     titulo("ACTIVIDAD 1. Preparación de los datos")
     df = pd.DataFrame(DATOS, columns=COLUMNAS)
 
-    print("Cualitativas: id, ciudad, producto")
-    print("Cuantitativas: edad, valor de compra, compras mensuales")
-    print("Datos faltantes en toda la tabla:", int(df.isna().sum().sum()))
-    print("Identificadores repetidos:", int(df["id"].duplicated().sum()))
+    mostrar("Cualitativas: id, ciudad, producto")
+    mostrar("Cuantitativas: edad, valor de compra, compras mensuales")
+    mostrar("Datos faltantes en toda la tabla:", int(df.isna().sum().sum()))
+    mostrar("Identificadores repetidos:", int(df["id"].duplicated().sum()))
 
     # Error de formato: el valor viene como texto, "$250.000", y así no se
     # puede sumar ni promediar. Se le quita el signo y el punto de miles.
-    print("Valor antes:", df["valor_texto"].dtype, "->", df.loc[0, "valor_texto"])
+    mostrar("Valor antes:", df["valor_texto"].dtype, "->", df.loc[0, "valor_texto"])
     df["valor"] = (df["valor_texto"].str.replace("$", "", regex=False)
                    .str.replace(".", "", regex=False).astype(int))
-    print("Valor después:", df["valor"].dtype, "->", df.loc[0, "valor"])
+    mostrar("Valor después:", df["valor"].dtype, "->", df.loc[0, "valor"])
 
     # Inconsistencia de significado: cada fila es una compra, pero la edad y las
     # compras mensuales son del cliente, y no hay un identificador de cliente.
-    print("Supuesto: la frecuencia mensual es la del cliente que hizo esa compra.")
+    mostrar("Supuesto: la frecuencia mensual es la del cliente que hizo esa compra.")
     return df
 
 
@@ -86,37 +123,37 @@ def preparar():
 def explorar(df):
     titulo("ACTIVIDAD 2. Análisis exploratorio")
 
-    print("\n1. Producto con más compras")
-    por_producto = df["producto"].value_counts()
-    print(por_producto.to_string())
+    subtitulo("1. Producto con más compras")
+    por_producto = df["producto"].value_counts().rename("compras")
+    mostrar_tabla(por_producto)
     total = df["valor"].sum()
     tec = df.loc[df["producto"] == "Tecnología", "valor"].sum()
-    print(f"Tecnología suma {pesos(tec)} de {pesos(total)}, el {tec / total:.0%}")
+    mostrar(f"Tecnología suma {pesos(tec)} de {pesos(total)}, el {tec / total:.0%}")
 
-    print("\n2. Valor promedio de las compras")
-    print("Promedio:", pesos(df["valor"].mean()))
-    print("Mediana:", pesos(df["valor"].median()))
-    print("Total:", pesos(total))
+    subtitulo("2. Valor promedio de las compras")
+    mostrar("Promedio:", pesos(df["valor"].mean()))
+    mostrar("Mediana:", pesos(df["valor"].median()))
+    mostrar("Total:", pesos(total))
 
-    print("\n3. Ciudad con más compras")
+    subtitulo("3. Ciudad con más compras")
     ciudades = df.groupby("ciudad")["valor"].agg(
         compras="count", promedio="mean", total="sum")
-    print(ciudades.sort_values("compras", ascending=False).map(pesos).to_string())
+    mostrar_tabla(ciudades.sort_values("compras", ascending=False).map(pesos))
 
-    print("\n4. Grupo de edad con los valores más altos")
+    subtitulo("4. Grupo de edad con los valores más altos")
     df["grupo_edad"] = pd.cut(df["edad"], bins=[20, 30, 40, 50], right=False,
                               labels=["20 a 29", "30 a 39", "40 a 49"])
     edades = df.groupby("grupo_edad", observed=True)["valor"].agg(
         compras="count", promedio="mean")
-    print(edades.map(pesos).to_string())
-    print("Correlación edad contra valor:", round(df["edad"].corr(df["valor"]), 2))
+    mostrar_tabla(edades.map(pesos))
+    mostrar("Correlación edad contra valor:", round(df["edad"].corr(df["valor"]), 2))
 
-    print("\n5. Relación entre la frecuencia mensual y el valor")
-    print("Correlación:", round(df["compras_mes"].corr(df["valor"]), 2))
+    subtitulo("5. Relación entre la frecuencia mensual y el valor")
+    mostrar("Correlación:", round(df["compras_mes"].corr(df["valor"]), 2))
     resumen = df.groupby("producto").agg(
         compras=("id", "count"), valor_promedio=("valor", "mean"),
         compras_mes=("compras_mes", "mean"), total=("valor", "sum"))
-    print(resumen.round(1).to_string())
+    mostrar_tabla(resumen.round(1))
 
 
 # ---------------------------------------------------------------------------
@@ -129,8 +166,8 @@ def clasificar(df):
                              right=False, labels=["Baja", "Media", "Alta"])
     tabla = df.groupby("categoria", observed=True)["valor"].agg(
         compras="count", promedio="mean")
-    print(tabla.map(pesos).to_string())
-    print(pd.crosstab(df["categoria"], df["producto"]).to_string())
+    mostrar_tabla(tabla.map(pesos))
+    mostrar_tabla(pd.crosstab(df["categoria"], df["producto"]))
 
 
 def agrupar(df):
@@ -144,7 +181,7 @@ def agrupar(df):
         km = KMeans(n_clusters=k, n_init=20, random_state=42).fit(x)
         tamanos = sorted(pd.Series(km.labels_).value_counts().tolist())
         silueta = silhouette_score(x, km.labels_)
-        print(f"k={k}  silueta={silueta:.3f}  compras por grupo={tamanos}")
+        mostrar(f"k={k}  silueta={silueta:.3f}  compras por grupo={tamanos}")
 
     km = KMeans(n_clusters=3, n_init=20, random_state=42).fit(x)
     df["grupo_kmeans"] = km.labels_
@@ -159,9 +196,9 @@ def agrupar(df):
             f"{p} {n}" for p, n in s.value_counts().items())),
         ids=("id", ", ".join),
     )
-    print(perfil.drop(columns="ids").round(2).to_string())
+    mostrar_tabla(perfil.drop(columns="ids").round(2))
     for g, ids in perfil["ids"].items():
-        print(f"Grupo {g}: {ids}")
+        mostrar(f"Grupo {g}: {ids}")
 
 
 # ---------------------------------------------------------------------------
@@ -192,8 +229,10 @@ def graficar(df):
     ax.set_ylim(0, conteo.max() + 1)
     estilo(ax)
     fig.tight_layout()
-    fig.savefig(SALIDA / "figura1_compras_por_producto.png", facecolor="white")
+    barras_png = SALIDA / "figura1_compras_por_producto.png"
+    fig.savefig(barras_png, facecolor="white")
     plt.close(fig)
+    mostrar_imagen(barras_png, "Gráfico de barras: cantidad de compras por producto")
 
     # Gráfico de dispersión: valor contra frecuencia, con el grupo de K-means.
     fig, ax = plt.subplots(figsize=(6.4, 4.0), dpi=200)
@@ -211,11 +250,47 @@ def graficar(df):
     ax.legend(frameon=False, fontsize=9, loc="upper right",
               bbox_to_anchor=(1.02, 1.0), labelcolor=TINTA)
     fig.tight_layout()
-    fig.savefig(SALIDA / "figura2_valor_vs_frecuencia.png", facecolor="white")
+    dispersion_png = SALIDA / "figura2_valor_vs_frecuencia.png"
+    fig.savefig(dispersion_png, facecolor="white")
     plt.close(fig)
+    mostrar_imagen(dispersion_png,
+                   "Gráfico de dispersión: valor contra frecuencia mensual")
+
     print("Guardados en la carpeta figuras:")
     print("  figura1_compras_por_producto.png")
     print("  figura2_valor_vs_frecuencia.png")
+
+
+# ---------------------------------------------------------------------------
+# Reporte HTML con todo lo anterior
+# ---------------------------------------------------------------------------
+CSS = """
+body { font-family: Arial, sans-serif; max-width: 900px; margin: 32px auto;
+       padding: 0 16px; color: #1a1a19; line-height: 1.5; }
+h2 { border-bottom: 1px solid #999; padding-bottom: 4px; margin-top: 40px; }
+table { border-collapse: collapse; margin: 8px 0 16px; }
+th, td { padding: 4px 14px; border-bottom: 1px solid #ddd; text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+img { max-width: 100%; }
+figcaption { font-size: 14px; color: #555; }
+"""
+
+
+def guardar_reporte():
+    pagina = (
+        "<!doctype html>\n<html lang='es'>\n<head>\n<meta charset='utf-8'>\n"
+        "<meta name='viewport' content='width=device-width'>\n"
+        f"<title>Taller 3: minería de datos</title>\n<style>{CSS}</style>\n"
+        "</head>\n<body>\n<h1>Taller 3: minería de datos</h1>\n"
+        "<p>Inteligencia de Negocios, Universidad Manuela Beltrán. "
+        "Análisis de las 12 compras del caso de la guía.</p>\n"
+        + "\n".join(PARTES) + "\n</body>\n</html>\n"
+    )
+    REPORTE.write_text(pagina, encoding="utf-8")
+    print("\nReporte guardado:", REPORTE.name)
+    # Con --sin-abrir solo se guarda, sin abrir el navegador.
+    if "--sin-abrir" not in sys.argv:
+        webbrowser.open(REPORTE.resolve().as_uri())
 
 
 if __name__ == "__main__":
@@ -224,3 +299,4 @@ if __name__ == "__main__":
     clasificar(datos)
     agrupar(datos)
     graficar(datos)
+    guardar_reporte()

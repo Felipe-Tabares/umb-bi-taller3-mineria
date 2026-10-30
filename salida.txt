@@ -85,3 +85,5 @@ FASE 3. Gráficos
 Guardados en la carpeta figuras:
   figura1_compras_por_producto.png
   figura2_valor_vs_frecuencia.png
+
+Reporte guardado: reporte_taller3.html
