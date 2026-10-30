@@ -1,0 +1,87 @@
+
+======================================================================
+ACTIVIDAD 1. Preparación de los datos
+======================================================================
+Cualitativas: id, ciudad, producto
+Cuantitativas: edad, valor de compra, compras mensuales
+Datos faltantes en toda la tabla: 0
+Identificadores repetidos: 0
+Valor antes: str -> $250.000
+Valor después: int64 -> 250000
+Supuesto: la frecuencia mensual es la del cliente que hizo esa compra.
+
+======================================================================
+ACTIVIDAD 2. Análisis exploratorio
+======================================================================
+
+1. Producto con más compras
+producto
+Tecnología    5
+Ropa          4
+Hogar         3
+Tecnología suma 1.690.000 de 2.710.000, el 62%
+
+2. Valor promedio de las compras
+Promedio: 225.833
+Mediana: 195.000
+Total: 2.710.000
+
+3. Ciudad con más compras
+         compras promedio    total
+ciudad                            
+Bogotá         5  186.000  930.000
+Medellín       4  217.500  870.000
+Cali           3  303.333  910.000
+
+4. Grupo de edad con los valores más altos
+           compras promedio
+grupo_edad                 
+20 a 29          5  210.000
+30 a 39          4  160.000
+40 a 49          3  340.000
+Correlación edad contra valor: 0.43
+
+5. Relación entre la frecuencia mensual y el valor
+Correlación: -0.22
+            compras  valor_promedio  compras_mes    total
+producto                                                 
+Hogar             3        160000.0          1.7   480000
+Ropa              4        135000.0          4.5   540000
+Tecnología        5        338000.0          2.6  1690000
+
+======================================================================
+ACTIVIDAD 3a. Clasificación por valor de compra
+======================================================================
+          compras promedio
+categoria                 
+Baja            3  106.667
+Media           6  205.000
+Alta            3  386.667
+producto   Hogar  Ropa  Tecnología
+categoria                         
+Baja           1     2           0
+Media          2     2           2
+Alta           0     0           3
+
+======================================================================
+ACTIVIDAD 3b. Agrupamiento con K-means
+======================================================================
+k=2  silueta=0.335  compras por grupo=[4, 8]
+k=3  silueta=0.459  compras por grupo=[4, 4, 4]
+k=4  silueta=0.513  compras por grupo=[2, 2, 4, 4]
+k=5  silueta=0.527  compras por grupo=[1, 2, 2, 3, 4]
+       compras  edad     valor  compras_mes              productos
+grupo                                                             
+1            4  32.0  135000.0         4.50                 Ropa 4
+2            4  25.0  235000.0         2.25  Tecnología 3, Hogar 1
+3            4  41.5  307500.0         2.25  Hogar 2, Tecnología 2
+Grupo 1: C002, C005, C008, C011
+Grupo 2: C001, C003, C006, C010
+Grupo 3: C004, C007, C009, C012
+
+======================================================================
+FASE 3. Gráficos
+======================================================================
+Guardados en la carpeta figuras:
+  figura1_compras_por_producto.png
+  figura2_valor_vs_frecuencia.png
